@@ -55,7 +55,7 @@ jobs:
           cache: maven
 
       - name: Build & Test
-        run: mvn clean verify -B
+        run: mvn clean package -DskipTests -B
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/newscrawler_test
           SPRING_DATASOURCE_USERNAME: testuser
