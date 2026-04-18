@@ -37,7 +37,20 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # Mở public các endpoint cần thiết
+        include: health, info, metrics
+  endpoint:
+    health:
+      # Hiển thị chi tiết trạng thái (DB, Redis có connect được không)
+      # Giúp bạn debug dễ hơn khi container báo "unhealthy"
+      show-details: always
+      # Bật tính năng Liveness và Readiness cho Docker/Kubernetes
+      probes:
+        enabled: true
+      # Nhóm các check lại (tùy chọn)
+      group:
+        readiness:
+          include: db, redis
 
 # App custom
 app:

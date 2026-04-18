@@ -12,6 +12,7 @@ node_modules/
 # Environment
 .env
 .env.example
+cd/
 
 # OS
 .DS_Store
