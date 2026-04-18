@@ -18,8 +18,8 @@ node_modules/
 Thumbs.db
 
 # Logs
+/logs/
 *.log
-logs/
 
 # Docker volumes
 postgres_data/
