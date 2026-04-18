@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -6,7 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/news-crawler-be
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/news-crawler-fe
+
 jobs:
+  # ── Backend: Build & Test ──────────────────────────────────
   backend-build:
     runs-on: ubuntu-latest
     defaults:
@@ -49,24 +55,17 @@ jobs:
           cache: maven
 
       - name: Build & Test
-        run: ./mvnw clean verify -B
+        run: mvn clean verify -B
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/newscrawler_test
           SPRING_DATASOURCE_USERNAME: testuser
           SPRING_DATASOURCE_PASSWORD: testpass
           SPRING_DATA_REDIS_HOST: localhost
           SPRING_DATA_REDIS_PORT: 6379
-          APP_JWT_SECRET: ci-test-secret-key-that-is-at-least-32-chars-long
+          APP_JWT_SECRET: ${{ secrets.JWT_SECRET }}
           APP_AI_PROVIDER: gemini
 
-      - name: Upload build artifact
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-jar
-          path: backend/target/*.jar
-          retention-days: 1
-
+  # ── Frontend: Build ────────────────────────────────────────
   frontend-build:
     runs-on: ubuntu-latest
     defaults:
@@ -89,10 +88,46 @@ jobs:
       - name: Build
         run: npm run build:prod
 
-      - name: Upload build artifact
-        if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+  # ── Docker: Build & Push ───────────────────────────────────
+  docker-build-push:
+    needs: [backend-build, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          name: frontend-dist
-          path: frontend/dist/
-          retention-days: 1
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:latest
+            ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build & Push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:latest
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

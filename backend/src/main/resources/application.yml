@@ -72,7 +72,7 @@ spring:
       on-profile: dev
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/newsdb?stringtype=unspecified
+    url: jdbc:postgresql://localhost:5432/newsdb?stringtype=unspecified
     username: newsuser
     password: newspass
 
