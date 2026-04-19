@@ -21,7 +21,7 @@ public class CrawlerScheduler {
 
     private static final String SCHEDULER_ENABLED_KEY = "crawler:scheduler:enabled";
 
-    // @Scheduled(fixedDelayString = "${app.crawler.interval-ms:1800000}")
+    @Scheduled(fixedDelayString = "${app.crawler.interval-ms:1800000}")
     public void scheduledCrawl() {
         log.info("check redis");
 
